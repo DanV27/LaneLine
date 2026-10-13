@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PoolCourse {
+  SCY
+  SCM
+  LCM
+}
+
+enum Level {
+  BEGINNER
+  AGE_GROUP
+  HIGH_SCHOOL
+  COLLEGE_ELITE
+  MASTERS
+}
+
+enum Focus {
+  AEROBIC
+  THRESHOLD
+  SPRINT
+  IM
+  KICK
+  PULL
+  TECHNIQUE
+  TAPER
+  RECOVERY
+}
+
+// Auth.js fields (accounts, sessions) are added in step 4.
+model User {
+  id        String    @id @default(cuid())
+  name      String?
+  email     String?   @unique
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  workouts  Workout[]
+}
+
+model Workout {
+  id               String     @id @default(cuid())
+  title            String
+  pool             PoolCourse
+  level            Level
+  focus            Focus
+  // Denormalized from `content` so lists and stats don't have to parse JSON.
+  totalDistance    Int
+  estimatedSeconds Int?
+  // Sections and sets, shaped by workoutContentSchema in src/lib/workout/schema.ts.
+  content          Json
+  // The generator inputs that produced this workout, for re-rolling sections.
+  params           Json?
+  // Null for workouts generated in guest mode.
+  userId           String?
+  user             User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, createdAt])
+}
