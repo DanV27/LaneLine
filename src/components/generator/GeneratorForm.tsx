@@ -12,7 +12,7 @@ import {
 } from "@/lib/workout/options";
 import type { Equipment, Stroke } from "@/lib/workout/schema";
 import { ChoiceGroup, Field, inputClass } from "./fields";
-import { RequestSummary } from "./RequestSummary";
+import { WorkoutView } from "./WorkoutView";
 
 const initialState: GenerateState = { status: "idle" };
 
@@ -170,9 +170,20 @@ export function GeneratorForm() {
         </button>
       </form>
 
-      <section aria-live="polite">
-        {state.status === "ready" ? (
-          <RequestSummary input={state.input} />
+      <section aria-live="polite" aria-busy={pending}>
+        {pending ? (
+          <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <span className="h-8 w-8 animate-spin rounded-full border-4 border-sky-200 border-t-sky-600" aria-hidden />
+            <p className="mt-4 font-semibold text-slate-700">Writing your workout…</p>
+            <p className="mt-1 text-sm text-slate-500">Drafting the sets and checking the math. This takes up to a minute.</p>
+          </div>
+        ) : state.status === "ready" ? (
+          <WorkoutView input={state.input} workout={state.workout} />
+        ) : state.status === "error" ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+            <p className="font-semibold">Couldn&apos;t generate a workout</p>
+            <p className="mt-1">{state.message}</p>
+          </div>
         ) : (
           <div className="flex h-full min-h-80 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 p-10 text-center">
             <p className="text-lg font-semibold text-slate-700">Your workout will appear here</p>
