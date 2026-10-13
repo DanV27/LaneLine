@@ -154,6 +154,7 @@ export function GeneratorForm() {
           <input
             name="baseInterval"
             placeholder="1:20"
+            aria-label="Base interval per 100 free"
             value={baseInterval}
             onChange={(event) => setBaseInterval(event.target.value)}
             className={inputClass}
