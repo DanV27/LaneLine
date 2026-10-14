@@ -9,7 +9,7 @@ import { checkWorkout, type Target } from "./check";
 import { draftToContent, workoutDraftSchema } from "./draft";
 import { describeRequest, repairRequest, SYSTEM_PROMPT } from "./prompt";
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
 // Ask Claude to fix a draft this many times before returning it with warnings.
 const MAX_REPAIRS = 2;
 

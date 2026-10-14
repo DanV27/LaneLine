@@ -29,7 +29,7 @@ const draftSectionSchema = z.object({
 });
 
 export const workoutDraftSchema = z.object({
-  title: z.string().describe("Short, specific workout name"),
+  title: z.string().describe("Short, specific workout name, without distances or times"),
   sections: z.array(draftSectionSchema),
 });
 

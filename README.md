@@ -6,7 +6,7 @@ A swim workout generator for swimmers and coaches. Pick your pool, length, level
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Postgres (Docker) + Prisma 7
-- Claude API (`claude-opus-5-5`) drafts workouts; code checks the math
+- Claude API (`claude-sonnet-5-5`) drafts workouts; code checks the math
 
 ## Getting started
 

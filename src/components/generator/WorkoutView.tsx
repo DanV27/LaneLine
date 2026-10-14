@@ -53,12 +53,18 @@ export function WorkoutView({ input, workout }: { input: GeneratorInput; workout
                 const repeated = group.rounds > 1;
                 return (
                   <div key={groupIndex}>
-                    {repeated && (
+                    {repeated ? (
                       <p className="font-semibold">
                         {group.rounds} rounds
                         <span className="font-normal text-slate-500"> ({groupDistance(group).toLocaleString()})</span>
                         {group.note && <span className="font-sans text-sm font-normal text-slate-500"> · {group.note}</span>}
                       </p>
+                    ) : (
+                      group.note && (
+                        <p className="mb-1 font-sans text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {group.note}
+                        </p>
+                      )
                     )}
                     <ul className={repeated ? "mt-1 space-y-1 border-l-2 border-sky-200 pl-4" : "space-y-1"}>
                       {group.lines.map((line, lineIndex) => (
@@ -68,7 +74,6 @@ export function WorkoutView({ input, workout }: { input: GeneratorInput; workout
                         </li>
                       ))}
                     </ul>
-                    {!repeated && group.note && <p className="mt-1 font-sans text-sm text-slate-500">{group.note}</p>}
                   </div>
                 );
               })}

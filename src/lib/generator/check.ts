@@ -14,8 +14,7 @@ export type CheckContext = {
 
 export const poolLength = (pool: PoolCourse) => (pool === "LCM" ? 50 : 25);
 
-/** How far the total may drift from the requested distance or time. */
-export const distanceTolerance = (distance: number) => Math.max(100, Math.round(distance * 0.025));
+/** How far the estimated time may drift from the requested duration. Distance must match exactly. */
 export const timeTolerance = (seconds: number) => Math.round(seconds * 0.1);
 
 /**
@@ -55,7 +54,7 @@ export function checkWorkout(content: WorkoutContent, context: CheckContext): st
   if ("distance" in context.target) {
     const total = workoutDistance(content);
     const goal = context.target.distance;
-    if (Math.abs(total - goal) > distanceTolerance(goal)) {
+    if (total !== goal) {
       problems.push(`Sections add up to ${total}, but the workout should total ${goal}.`);
     }
   } else {

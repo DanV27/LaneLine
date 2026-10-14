@@ -28,8 +28,10 @@ describe("checkWorkout", () => {
     expect(problems).toEqual(["Sections add up to 600, but the workout should total 1000."]);
   });
 
-  it("accepts a small drift inside the tolerance", () => {
-    expect(checkWorkout(workout(line({ reps: 9, intervals: { A: 90 } })), context)).toEqual([]);
+  it("requires the distance to match exactly", () => {
+    expect(checkWorkout(workout(line({ reps: 9, intervals: { A: 90 } })), context)).toEqual([
+      "Sections add up to 900, but the workout should total 1000.",
+    ]);
   });
 
   it("flags distances that don't fit the pool", () => {
