@@ -84,7 +84,15 @@ export const workoutContextSchema = z.object({
 export type WorkoutContext = z.infer<typeof workoutContextSchema>;
 
 /** What the workout should add up to: an exact distance, or a duration in seconds. */
-export type Target = { distance: number } | { seconds: number };
+export const targetSchema = z.union([
+  z.object({ distance: z.number().int().positive() }),
+  z.object({ seconds: z.number().int().positive() }),
+]);
+
+export type Target = z.infer<typeof targetSchema>;
+
+/** Stored in Workout.params so a saved workout can still be checked and re-rolled. */
+export const workoutParamsSchema = z.object({ context: workoutContextSchema, target: targetSchema });
 
 // ---------------------------------------------------------------------------
 // Workout content: what gets stored in Workout.content.

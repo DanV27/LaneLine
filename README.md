@@ -7,13 +7,14 @@ A swim workout generator for swimmers and coaches. Pick your pool, length, level
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Postgres (Docker) + Prisma 7
 - Claude API (`claude-sonnet-5-5`) drafts workouts; code checks the math
+- Better Auth: Google sign-in and email magic links
 
 ## Getting started
 
 Requires Node 20+ and Docker.
 
 ```bash
-cp .env.example .env   # then set ANTHROPIC_API_KEY
+cp .env.example .env   # then set ANTHROPIC_API_KEY and BETTER_AUTH_SECRET
 npm install
 npm run db:up        # start Postgres on localhost:5433
 npm run db:migrate   # apply migrations
@@ -21,6 +22,13 @@ npm run dev
 ```
 
 Then open http://localhost:3000.
+
+## Accounts
+
+Everything works in guest mode. Signing in adds **My workouts** (saved workouts you can reopen, edit and re-roll) and the **set library** (sections saved with tags and reusable in any workout). A guest who clicks "Sign in to save" keeps their workout: it's saved automatically once they're signed in.
+
+- **Email magic links**: without `RESEND_API_KEY`, the sign-in link is printed in the dev server console instead of emailed.
+- **Google**: shown on the sign-in page once `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set. Use `http://localhost:3000/api/auth/callback/google` as the redirect URI.
 
 ## How generation works
 

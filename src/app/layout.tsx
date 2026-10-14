@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { HeaderNav } from "@/components/auth/HeaderNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </span>
               LaneLine
             </Link>
+            <HeaderNav />
           </div>
         </header>
         {children}
