@@ -1,6 +1,7 @@
 import { EQUIPMENT_OPTIONS, labelFor } from "./options";
-import type { SetLine } from "./schema";
+import type { SetLine, WorkoutContent } from "./schema";
 import { formatInterval } from "./time";
+import { sectionDistance } from "./totals";
 
 const STROKE_TEXT: Record<SetLine["stroke"], string> = {
   FREE: "free",
@@ -30,4 +31,18 @@ export function formatDuration(totalSeconds: number): string {
   const minutes = Math.round(totalSeconds / 60);
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours}h ${String(minutes % 60).padStart(2, "0")}m` : `${minutes}m`;
+}
+
+/** Plain-text whiteboard version of a workout, e.g. for giving Claude context. */
+export function workoutToText(content: WorkoutContent): string {
+  return content.sections
+    .map((section) => {
+      const groups = section.groups.map((group) => {
+        const lines = group.lines.map((line) => `${formatLine(line)}${line.note ? ` (${line.note})` : ""}`);
+        if (group.rounds === 1) return lines.map((line) => `  ${line}`).join("\n");
+        return [`  ${group.rounds} rounds:`, ...lines.map((line) => `    ${line}`)].join("\n");
+      });
+      return [`${section.title} [${section.kind}, ${sectionDistance(section)}]`, ...groups].join("\n");
+    })
+    .join("\n\n");
 }

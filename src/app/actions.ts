@@ -2,14 +2,28 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { generateWorkout as runGenerator, GenerationError, type GeneratedWorkout } from "@/lib/generator/generate";
-import { generatorInputSchema, type GeneratorField, type GeneratorInput } from "@/lib/workout/schema";
+import {
+  generateWorkout as runGenerator,
+  GenerationError,
+  rerollSection as runReroll,
+  type GeneratedWorkout,
+} from "@/lib/generator/generate";
+import {
+  generatorInputSchema,
+  workoutContentSchema,
+  workoutContextSchema,
+  type GeneratorField,
+  type Section,
+  type WorkoutContent,
+  type WorkoutContext,
+} from "@/lib/workout/schema";
 
 export type GenerateState =
   | { status: "idle" }
   | { status: "invalid"; fieldErrors: Partial<Record<GeneratorField, string[]>> }
   | { status: "error"; message: string }
-  | { status: "ready"; input: GeneratorInput; workout: GeneratedWorkout };
+  // `id` changes on every generation so the editor resets its local edits.
+  | { status: "ready"; id: string; workout: GeneratedWorkout };
 
 export async function generateWorkout(_prev: GenerateState, formData: FormData): Promise<GenerateState> {
   const parsed = generatorInputSchema.safeParse({
@@ -30,9 +44,36 @@ export async function generateWorkout(_prev: GenerateState, formData: FormData):
 
   try {
     const workout = await runGenerator(parsed.data);
-    return { status: "ready", input: parsed.data, workout };
+    return { status: "ready", id: crypto.randomUUID(), workout };
   } catch (error) {
     return { status: "error", message: describeError(error) };
+  }
+}
+
+export type RerollResult = { ok: true; section: Section } | { ok: false; message: string };
+
+const rerollArgsSchema = z.object({
+  context: workoutContextSchema,
+  content: workoutContentSchema,
+  sectionId: z.string(),
+});
+
+export async function rerollSection(
+  context: WorkoutContext,
+  content: WorkoutContent,
+  sectionId: string,
+): Promise<RerollResult> {
+  // Server actions accept anything from the client, so re-validate the edited workout.
+  const parsed = rerollArgsSchema.safeParse({ context, content, sectionId });
+  if (!parsed.success) {
+    return { ok: false, message: "This workout couldn't be read. Try generating it again." };
+  }
+
+  try {
+    const section = await runReroll(parsed.data.context, parsed.data.content, parsed.data.sectionId);
+    return { ok: true, section };
+  } catch (error) {
+    return { ok: false, message: describeError(error) };
   }
 }
 

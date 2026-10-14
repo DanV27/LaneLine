@@ -25,12 +25,12 @@ describe("checkWorkout", () => {
 
   it("flags a total that misses the target", () => {
     const problems = checkWorkout(workout(line({ reps: 6, intervals: { A: 90 } })), context);
-    expect(problems).toEqual(["Sections add up to 600, but the workout should total 1000."]);
+    expect(problems).toEqual(["Sections add up to 600, but the workout should total 1,000."]);
   });
 
   it("requires the distance to match exactly", () => {
     expect(checkWorkout(workout(line({ reps: 9, intervals: { A: 90 } })), context)).toEqual([
-      "Sections add up to 900, but the workout should total 1000.",
+      "Sections add up to 900, but the workout should total 1,000.",
     ]);
   });
 

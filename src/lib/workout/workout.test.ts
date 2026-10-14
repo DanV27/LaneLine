@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, formatLine } from "./format";
+import { formatDuration, formatLine, workoutToText } from "./format";
 import type { SetLine, WorkoutContent } from "./schema";
 import { formatInterval, parseInterval } from "./time";
 import { estimateSeconds, workoutDistance } from "./totals";
@@ -68,6 +68,12 @@ describe("totals", () => {
   it("multiplies reps and rounds", () => {
     // 400 + 3 × (4×100 + 200)
     expect(workoutDistance(content)).toBe(2200);
+  });
+
+  it("renders a plain-text whiteboard version", () => {
+    expect(workoutToText(content)).toBe(
+      ["Warm-up [WARMUP, 400]", "  400 free", "", "Main [MAIN, 1800]", "  3 rounds:", "    4 × 100 free @ 1:20", "    200 free pull @ 3:00"].join("\n"),
+    );
   });
 
   it("estimates time from send-offs, and base pace where there are none", () => {

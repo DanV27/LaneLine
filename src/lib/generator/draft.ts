@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EQUIPMENT, LINE_STROKES, LINE_TYPES, SECTION_KINDS, type WorkoutContent } from "@/lib/workout/schema";
+import { EQUIPMENT, LINE_STROKES, LINE_TYPES, SECTION_KINDS, type Section, type WorkoutContent } from "@/lib/workout/schema";
 
 // The shape Claude fills in via structured outputs. Kept flat and constraint-free
 // (structured outputs ignore min/max); the real rules live in workoutContentSchema
@@ -22,7 +22,7 @@ const draftGroupSchema = z.object({
   note: z.string().nullable(),
 });
 
-const draftSectionSchema = z.object({
+export const draftSectionSchema = z.object({
   kind: z.enum(SECTION_KINDS),
   title: z.string(),
   groups: z.array(draftGroupSchema),
@@ -34,27 +34,32 @@ export const workoutDraftSchema = z.object({
 });
 
 export type WorkoutDraft = z.infer<typeof workoutDraftSchema>;
+export type SectionDraft = z.infer<typeof draftSectionSchema>;
 
 /** Converts Claude's draft into stored workout content (nulls dropped, section ids assigned). */
 export function draftToContent(draft: WorkoutDraft): WorkoutContent {
   return {
-    sections: draft.sections.map((section, index) => ({
-      id: `${section.kind.toLowerCase()}-${index + 1}`,
-      kind: section.kind,
-      title: section.title,
-      groups: section.groups.map((group) => ({
-        rounds: group.rounds,
-        note: group.note ?? undefined,
-        lines: group.lines.map((line) => ({
-          reps: line.reps,
-          distance: line.distance,
-          stroke: line.stroke,
-          type: line.type,
-          intervals: line.intervalSeconds ? { A: line.intervalSeconds } : undefined,
-          restSeconds: line.intervalSeconds ? undefined : (line.restSeconds ?? undefined),
-          equipment: line.equipment,
-          note: line.note ?? undefined,
-        })),
+    sections: draft.sections.map((section, index) => draftSectionToContent(section, `${section.kind.toLowerCase()}-${index + 1}`)),
+  };
+}
+
+export function draftSectionToContent(section: SectionDraft, id: string): Section {
+  return {
+    id,
+    kind: section.kind,
+    title: section.title,
+    groups: section.groups.map((group) => ({
+      rounds: group.rounds,
+      note: group.note ?? undefined,
+      lines: group.lines.map((line) => ({
+        reps: line.reps,
+        distance: line.distance,
+        stroke: line.stroke,
+        type: line.type,
+        intervals: line.intervalSeconds ? { A: line.intervalSeconds } : undefined,
+        restSeconds: line.intervalSeconds ? undefined : (line.restSeconds ?? undefined),
+        equipment: line.equipment,
+        note: line.note ?? undefined,
       })),
     })),
   };

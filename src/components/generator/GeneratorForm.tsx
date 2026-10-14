@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { generateWorkout, type GenerateState } from "@/app/actions";
+import { WorkoutEditor } from "@/components/workout/WorkoutEditor";
 import type { Focus, Level, PoolCourse } from "@/generated/prisma/enums";
 import {
   EQUIPMENT_OPTIONS,
@@ -12,7 +13,6 @@ import {
 } from "@/lib/workout/options";
 import type { Equipment, Stroke } from "@/lib/workout/schema";
 import { ChoiceGroup, Field, inputClass } from "./fields";
-import { WorkoutView } from "./WorkoutView";
 
 const initialState: GenerateState = { status: "idle" };
 
@@ -34,12 +34,21 @@ export function GeneratorForm() {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [baseInterval, setBaseInterval] = useState("1:20");
 
+  // Editing hides the form so the workout gets the full width.
+  const [editing, setEditing] = useState(false);
+  const showEditor = editing && state.status === "ready" && !pending;
+
   const errors = state.status === "invalid" ? state.fieldErrors : {};
   const unit = pool === "SCY" ? "yards" : "meters";
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-      <form action={formAction} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className={showEditor ? "mx-auto max-w-4xl" : "grid gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]"}>
+      <form
+        action={formAction}
+        onSubmit={() => setEditing(false)}
+        hidden={showEditor}
+        className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
         <Field label="Pool" error={errors.pool?.[0]}>
           <ChoiceGroup
             name="pool"
@@ -178,7 +187,7 @@ export function GeneratorForm() {
             <p className="mt-1 text-sm text-slate-500">Drafting the sets and checking the math. This takes up to a minute.</p>
           </div>
         ) : state.status === "ready" ? (
-          <WorkoutView input={state.input} workout={state.workout} />
+          <WorkoutEditor key={state.id} workout={state.workout} editing={showEditor} onEditingChange={setEditing} />
         ) : state.status === "error" ? (
           <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
             <p className="font-semibold">Couldn&apos;t generate a workout</p>

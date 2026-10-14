@@ -1,10 +1,8 @@
 import type { PoolCourse } from "@/generated/prisma/enums";
 import { fastestPacePer100 } from "@/lib/workout/pace";
-import type { WorkoutContent } from "@/lib/workout/schema";
+import type { Target, WorkoutContent } from "@/lib/workout/schema";
 import { formatInterval } from "@/lib/workout/time";
 import { estimateSeconds, workoutDistance } from "@/lib/workout/totals";
-
-export type Target = { distance: number } | { seconds: number };
 
 export type CheckContext = {
   pool: PoolCourse;
@@ -55,7 +53,7 @@ export function checkWorkout(content: WorkoutContent, context: CheckContext): st
     const total = workoutDistance(content);
     const goal = context.target.distance;
     if (total !== goal) {
-      problems.push(`Sections add up to ${total}, but the workout should total ${goal}.`);
+      problems.push(`Sections add up to ${total.toLocaleString("en-US")}, but the workout should total ${goal.toLocaleString("en-US")}.`);
     }
   } else {
     const estimate = estimateSeconds(content, context.basePace);
