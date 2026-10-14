@@ -69,6 +69,23 @@ export const generatorInputSchema = z
 export type GeneratorInput = z.infer<typeof generatorInputSchema>;
 export type GeneratorField = keyof z.input<typeof generatorInputSchema>;
 
+/** The swimmer and pool settings a workout was written for. Sent back to the server when re-rolling a section. */
+export const workoutContextSchema = z.object({
+  pool: z.enum(PoolCourse),
+  level: z.enum(Level),
+  focus: z.enum(Focus),
+  strokes: z.array(z.enum(STROKES)).min(1),
+  equipment: z.array(z.enum(EQUIPMENT)),
+  // Seconds per 100 free; falls back to a typical pace for the level when the swimmer didn't set one.
+  basePace: z.number().int().min(50).max(240),
+  basePaceGiven: z.boolean(),
+});
+
+export type WorkoutContext = z.infer<typeof workoutContextSchema>;
+
+/** What the workout should add up to: an exact distance, or a duration in seconds. */
+export type Target = { distance: number } | { seconds: number };
+
 // ---------------------------------------------------------------------------
 // Workout content: what gets stored in Workout.content.
 // A workout is a list of sections (warm-up, main set...), each made of groups

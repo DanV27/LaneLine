@@ -5,9 +5,11 @@ import {
   STROKE_OPTIONS,
   labelFor,
 } from "@/lib/workout/options";
-import type { GeneratorInput } from "@/lib/workout/schema";
+import { workoutToText } from "@/lib/workout/format";
+import type { Section, Target, WorkoutContent, WorkoutContext } from "@/lib/workout/schema";
 import { formatInterval } from "@/lib/workout/time";
-import { poolLength, type Target } from "./check";
+import { sectionDistance } from "@/lib/workout/totals";
+import { poolLength } from "./check";
 
 export const SYSTEM_PROMPT = `You are an experienced swim coach writing a single practice for a swimmer or team.
 
@@ -20,23 +22,38 @@ Rules the workout must satisfy (it is checked automatically):
 - Only use equipment the swimmer has. Kick sets without a kickboard are fine (streamline or on the back).
 - Use the strokes the swimmer asked for in the main set; warm-up and cool-down can be choice or free.`;
 
-export function describeRequest(input: GeneratorInput, target: Target, basePace: number): string {
-  const unit = input.pool === "SCY" ? "yards" : "meters";
+export const unitFor = (pool: WorkoutContext["pool"]) => (pool === "SCY" ? "yards" : "meters");
+
+export function describeRequest(context: WorkoutContext, target: Target): string {
+  const unit = unitFor(context.pool);
   const length =
     "distance" in target
       ? `exactly ${target.distance} ${unit}`
       : `about ${Math.round(target.seconds / 60)} minutes of swimming (pick a total distance that fits)`;
-  const equipment = input.equipment.map((item) => labelFor(EQUIPMENT_OPTIONS, item)).join(", ") || "none";
-  const paceSource = input.baseInterval ? "given by the swimmer" : "typical for this level; the swimmer didn't set one";
+  const equipment = context.equipment.map((item) => labelFor(EQUIPMENT_OPTIONS, item)).join(", ") || "none";
+  const paceSource = context.basePaceGiven ? "given by the swimmer" : "typical for this level; the swimmer didn't set one";
 
   return [
-    `Pool: ${input.pool} (${poolLength(input.pool)} ${unit} per length)`,
+    `Pool: ${context.pool} (${poolLength(context.pool)} ${unit} per length)`,
     `Length: ${length}`,
-    `Level: ${labelFor(LEVEL_OPTIONS, input.level)}`,
-    `Focus: ${labelFor(FOCUS_OPTIONS, input.focus)}`,
-    `Strokes: ${input.strokes.map((stroke) => labelFor(STROKE_OPTIONS, stroke)).join(", ")}`,
+    `Level: ${labelFor(LEVEL_OPTIONS, context.level)}`,
+    `Focus: ${labelFor(FOCUS_OPTIONS, context.focus)}`,
+    `Strokes: ${context.strokes.map((stroke) => labelFor(STROKE_OPTIONS, stroke)).join(", ")}`,
     `Equipment available: ${equipment}`,
-    `Base pace: ${formatInterval(basePace)} per 100 free (${paceSource})`,
+    `Base pace: ${formatInterval(context.basePace)} per 100 free (${paceSource})`,
+  ].join("\n");
+}
+
+export function rerollRequest(context: WorkoutContext, content: WorkoutContent, section: Section): string {
+  const distance = sectionDistance(section);
+  return [
+    describeRequest(context, { distance: content.sections.reduce((sum, s) => sum + sectionDistance(s), 0) }),
+    "",
+    "Current workout:",
+    workoutToText(content),
+    "",
+    `Rewrite only the "${section.title}" section (${section.kind}) with a fresh take that still fits the workout around it. ` +
+      `It must total exactly ${distance} ${unitFor(context.pool)} so the workout total doesn't change. Return just that section.`,
   ].join("\n");
 }
 
