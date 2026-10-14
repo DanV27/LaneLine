@@ -187,7 +187,12 @@ export function GeneratorForm() {
             <p className="mt-1 text-sm text-slate-500">Drafting the sets and checking the math. This takes up to a minute.</p>
           </div>
         ) : state.status === "ready" ? (
-          <WorkoutEditor key={state.id} workout={state.workout} editing={showEditor} onEditingChange={setEditing} />
+          <WorkoutEditor
+            key={state.id}
+            workout={state.workout}
+            editing={showEditor}
+            onEditingChange={setEditing}
+          />
         ) : state.status === "error" ? (
           <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
             <p className="font-semibold">Couldn&apos;t generate a workout</p>

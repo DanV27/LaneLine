@@ -1,29 +1,52 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { rerollSection } from "@/app/actions";
+import { saveWorkout } from "@/app/workouts/actions";
+import { authClient } from "@/lib/auth-client";
 import { checkWorkout } from "@/lib/generator/check";
 import type { GeneratedWorkout } from "@/lib/generator/generate";
 import { formatDuration } from "@/lib/workout/format";
 import { FOCUS_OPTIONS, LEVEL_OPTIONS, labelFor } from "@/lib/workout/options";
+import { stashPendingWorkout } from "@/lib/pending-workout";
 import type { Section } from "@/lib/workout/schema";
 import { estimateSeconds, sectionDistance, workoutDistance } from "@/lib/workout/totals";
 import { smallInputClass } from "./inputs";
-import { SectionEditor } from "./SectionEditor";
+import { LibraryPicker } from "./LibraryPicker";
+import { SaveToLibrary } from "./SaveToLibrary";
+import { blankLine, SectionEditor } from "./SectionEditor";
 import { SectionView } from "./SectionView";
 
-export function WorkoutEditor({
-  workout,
-  editing,
-  onEditingChange,
-}: {
+type Props = {
   workout: GeneratedWorkout;
-  editing: boolean;
-  onEditingChange: (editing: boolean) => void;
-}) {
+  /** Known on pages that already checked the session; read from the browser session otherwise. */
+  signedIn?: boolean;
+  /** Set when editing a workout that's already saved. */
+  savedId?: string;
+  /** Lets the page widen the layout while editing; managed internally when omitted. */
+  editing?: boolean;
+  onEditingChange?: (editing: boolean) => void;
+};
+
+export function WorkoutEditor({ workout, savedId: initialSavedId, ...props }: Props) {
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const signedIn = props.signedIn ?? Boolean(session);
   const { context, target } = workout;
   const [title, setTitle] = useState(workout.title);
   const [content, setContent] = useState(workout.content);
+  const [localEditing, setLocalEditing] = useState(false);
+  const editing = props.editing ?? localEditing;
+  const setEditing = props.onEditingChange ?? setLocalEditing;
+
+  const [savedId, setSavedId] = useState(initialSavedId);
+  // What was last saved, to tell whether there are unsaved changes.
+  const [savedVersion, setSavedVersion] = useState(initialSavedId ? { title: workout.title, content: workout.content } : null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [libraryFormFor, setLibraryFormFor] = useState<string | null>(null);
   const [rerollingId, setRerollingId] = useState<string | null>(null);
   const [rerollError, setRerollError] = useState<{ sectionId: string; message: string } | null>(null);
 
@@ -34,6 +57,30 @@ export function WorkoutEditor({
   const problems = checkWorkout(content, { pool: context.pool, target, basePace: context.basePace });
   const offTarget = "distance" in target && total !== target.distance;
   const changed = content !== workout.content || title !== workout.title;
+  const dirty = !savedVersion || savedVersion.title !== title || savedVersion.content !== content;
+
+  async function save() {
+    if (!signedIn) {
+      // Keep the workout (with edits) through sign-in; /workouts/import saves it afterwards.
+      stashPendingWorkout({ title, content, context, target });
+      router.push("/signin?next=/workouts/import");
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const result = await saveWorkout({ id: savedId, title, content, context, target });
+    if (result.ok) {
+      setSavedId(result.id);
+      setSavedVersion({ title, content });
+    } else {
+      setSaveError(result.message);
+    }
+    setSaving(false);
+  }
+
+  function addSection(section: Section) {
+    setContent((current) => ({ sections: [...current.sections, section] }));
+  }
 
   function updateSection(next: Section) {
     setContent((current) => ({
@@ -90,15 +137,37 @@ export function WorkoutEditor({
             )}
             <button
               type="button"
-              onClick={() => onEditingChange(!editing)}
+              onClick={() => setEditing(!editing)}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
                 editing ? "bg-sky-600 text-white hover:bg-sky-700" : "border border-slate-300 text-slate-700 hover:border-sky-400"
               }`}
             >
               {editing ? "Done" : "Edit"}
             </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving || (signedIn && !dirty)}
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              {!signedIn ? "Sign in to save" : saving ? "Saving…" : !dirty ? "Saved ✓" : savedId ? "Save changes" : "Save"}
+            </button>
           </div>
         </div>
+        {saveError && (
+          <p role="alert" className="mt-2 text-sm text-red-600">
+            {saveError}
+          </p>
+        )}
+        {savedId && !initialSavedId && (
+          <p className="mt-2 text-sm text-slate-500">
+            Saved to{" "}
+            <Link href={`/workouts/${savedId}`} className="font-medium text-sky-700 hover:underline">
+              My workouts
+            </Link>
+            .
+          </p>
+        )}
         <dl className="mt-4 flex gap-8 text-sm">
           <div>
             <dt className="text-slate-500">Total</dt>
@@ -156,6 +225,15 @@ export function WorkoutEditor({
                 >
                   {busy ? "Re-rolling…" : "↻ Re-roll"}
                 </button>
+                {signedIn && (
+                  <button
+                    type="button"
+                    onClick={() => setLibraryFormFor(libraryFormFor === section.id ? null : section.id)}
+                    className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:border-sky-400 hover:text-sky-700"
+                  >
+                    Save to library
+                  </button>
+                )}
                 {editing && (
                   <button
                     type="button"
@@ -166,6 +244,10 @@ export function WorkoutEditor({
                   </button>
                 )}
               </div>
+
+              {libraryFormFor === section.id && (
+                <SaveToLibrary section={section} pool={context.pool} onClose={() => setLibraryFormFor(null)} />
+              )}
 
               {rerollError?.sectionId === section.id && (
                 <p role="alert" className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700">
@@ -184,6 +266,30 @@ export function WorkoutEditor({
           );
         })}
       </div>
+
+      {editing && (
+        <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 p-6">
+          <button
+            type="button"
+            onClick={() =>
+              addSection({
+                id: crypto.randomUUID(),
+                kind: "MAIN",
+                title: "New section",
+                groups: [{ rounds: 1, lines: [blankLine(context.basePace)] }],
+              })
+            }
+            className="text-sm font-medium text-sky-700 hover:text-sky-900"
+          >
+            + Add section
+          </button>
+          {signedIn && (
+            <div className="min-w-72 flex-1">
+              <LibraryPicker onPick={addSection} />
+            </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }

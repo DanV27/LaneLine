@@ -182,6 +182,12 @@ function LineEditor({ line, basePace, onChange, onDelete, onMoveUp, onMoveDown }
   );
 }
 
+/** A sensible default line for "add line": 4 × 100 free on a comfortable send-off. */
+export function blankLine(basePace: number): SetLine {
+  const line: SetLine = { reps: 4, distance: 100, stroke: "FREE", type: "SWIM", equipment: [] };
+  return { ...line, intervals: { A: suggestedInterval(line, basePace) } };
+}
+
 /** Edits one section's groups and lines. Empty groups are dropped; the parent drops empty sections. */
 export function SectionEditor({ section, basePace, onChange }: {
   section: Section;
@@ -190,11 +196,6 @@ export function SectionEditor({ section, basePace, onChange }: {
 }) {
   const setGroups = (groups: SetGroup[]) =>
     onChange({ ...section, groups: groups.filter((group) => group.lines.length > 0) });
-
-  const newLine = (): SetLine => {
-    const line: SetLine = { reps: 4, distance: 100, stroke: "FREE", type: "SWIM", equipment: [] };
-    return { ...line, intervals: { A: suggestedInterval(line, basePace) } };
-  };
 
   return (
     <div className="space-y-3">
@@ -244,7 +245,7 @@ export function SectionEditor({ section, basePace, onChange }: {
 
             <button
               type="button"
-              onClick={() => setLines([...group.lines, newLine()])}
+              onClick={() => setLines([...group.lines, blankLine(basePace)])}
               className="text-sm font-medium text-sky-700 hover:text-sky-900"
             >
               + Add line
@@ -255,7 +256,7 @@ export function SectionEditor({ section, basePace, onChange }: {
 
       <button
         type="button"
-        onClick={() => setGroups([...section.groups, { rounds: 1, lines: [newLine()] }])}
+        onClick={() => setGroups([...section.groups, { rounds: 1, lines: [blankLine(basePace)] }])}
         className="text-sm font-medium text-sky-700 hover:text-sky-900"
       >
         + Add group

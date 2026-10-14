@@ -33,15 +33,63 @@ enum Focus {
   RECOVERY
 }
 
-// Auth.js fields (accounts, sessions) are added in step 4.
+// User, Session, Account and Verification follow Better Auth's core schema.
 model User {
-  id        String    @id @default(cuid())
-  name      String?
-  email     String?   @unique
-  image     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  workouts  Workout[]
+  id            String     @id
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  image         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  workouts      Workout[]
+  savedSets     SavedSet[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 model Workout {
@@ -55,13 +103,31 @@ model Workout {
   estimatedSeconds Int?
   // Sections and sets, shaped by workoutContentSchema in src/lib/workout/schema.ts.
   content          Json
-  // The generator inputs that produced this workout, for re-rolling sections.
-  params           Json?
+  // { context, target } the workout was generated for, so sections can be re-rolled later.
+  params           Json
   // Null for workouts generated in guest mode.
   userId           String?
   user             User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+// A single section saved to a user's set library, for reuse in other workouts.
+model SavedSet {
+  id            String     @id @default(cuid())
+  title         String
+  kind          String
+  pool          PoolCourse
+  totalDistance Int
+  // One section, shaped by sectionSchema in src/lib/workout/schema.ts.
+  content       Json
+  tags          String[]
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([userId, createdAt])
 }
